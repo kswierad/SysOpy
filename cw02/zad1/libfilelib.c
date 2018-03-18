@@ -68,31 +68,14 @@ void sort_file(char *filePath, int recordsNumber, int recordSize){
     char* bufferOne = calloc(recordSize,sizeof(char));
     char* bufferTwo = calloc(recordSize,sizeof(char));
     if(handle){
-        bufferTwo = "Pupa";
-        for(int i = 0; i < recordsNumber; i++){
-                fseek(handle,i*recordSize,0);
-                fread(bufferOne,sizeof(char),recordSize,handle);
-                printf("%s |two[%d] \n",bufferOne,i);
-                fseek(handle,-recordSize,1);
-                fwrite(bufferTwo,sizeof(char),recordSize,handle);
-                printf("pisze %s |two \n",bufferTwo);
-                strncpy(bufferTwo,bufferOne,4);
-                printf("%s |two[%d] \n",bufferOne,i);
-            }
-        fclose(handle);
-        return;
-
         for(int i=1; i < recordsNumber; i++){
             fseek(handle,i*recordSize,0);
             fread(bufferOne,sizeof(char),recordSize,handle);
-            printf("%s |one[%d] \n",bufferOne,i);
             int j=0;
             while(1){
                 fseek(handle,j*recordSize,0);
                 fread(bufferTwo,sizeof(char),recordSize,handle);
-                printf("%s |two[%d]\n",bufferTwo,j);
                 if(j>=i || bufferOne[0]<bufferTwo[0]){
-                    printf("brejkuje \n");
                     break;
                 } 
                 j++;
@@ -100,15 +83,12 @@ void sort_file(char *filePath, int recordsNumber, int recordSize){
 
             fseek(handle,-recordSize,1);
             fwrite(bufferOne,sizeof(char),recordSize,handle);
-            printf("pisze %s |one \n",bufferOne);
             for(int k = j+1; k < i+1; k++){
                 fseek(handle,k*recordSize,0);
                 fread(bufferOne,sizeof(char),recordSize,handle);
-                printf("%s |two[%d] \n",bufferOne,k);
                 fseek(handle,-recordSize,1);
                 fwrite(bufferTwo,sizeof(char),recordSize,handle);
-                printf("pisze %s |two \n",bufferOne);
-                bufferTwo = bufferOne;
+                strncpy(bufferTwo,bufferOne,recordSize);
             }
 
         }
