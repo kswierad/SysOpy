@@ -68,7 +68,7 @@ void sort_file(char *filePath, int recordsNumber, int recordSize){
     char* bufferOne = calloc(recordSize,sizeof(char));
     char* bufferTwo = calloc(recordSize,sizeof(char));
     if(handle){
-        bufferTwo = "Pupa";
+        strcpy(bufferTwo, "Pupa");
         for(int i = 0; i < recordsNumber; i++){
                 fseek(handle,i*recordSize,0);
                 fread(bufferOne,sizeof(char),recordSize,handle);
