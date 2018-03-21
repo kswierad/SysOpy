@@ -35,12 +35,8 @@ char* get_permissions(const struct stat* stat_buffer) {
 void not_nftw(const char *path, int (*fn)(const char *,
        const struct stat *, int, struct FTW *), int fd_limit, int flags){
            //printf("%s \n",path);
-           
            DIR* handle = opendir(path);
-           if(handle==NULL){
-               printf("DOSTOŁCH NULA \n");
-               return;
-           }
+           
            struct dirent* current = readdir(handle);
            while(current!=NULL){
                 int path_name_len = 0;
@@ -124,6 +120,18 @@ int main(int argc,char* argv[]){
     path = argv[1];
     operant = argv[2];
     date = argv[3];
+    DIR* handle = opendir(path);
+    if(handle==NULL){
+        printf("Wrong first argument \n");
+        return 1;
+    }
+
+    if(!(strcmp(argv[2],"=")==0 || strcmp(argv[2],">") || strcmp(argv[2],"<"))){
+        printf("Wrong second argument \n");
+        return 1;
+    }
+  
+   
     //nftw(path,&process_el,5,FTW_F);
     not_nftw(path,&process_el,5,FTW_F);
 

@@ -8,13 +8,15 @@
 #include "libfilelib.h"
 
 void generate_file(char *filePath, int recordsNumber, int recordSize){
-    FILE *handle = fopen(filePath, "w");
+    FILE *handle = fopen(filePath, "w+");
+    //if(handle==NULL) printf("%s\n",filePath);
     FILE *rand_handle = fopen("/dev/urandom", "r");
+    //if(rand_handle==NULL) printf("KURWA\n");
     unsigned char *buffer = calloc(recordSize, sizeof(char));
     if (handle && rand_handle){
         for (int i = 0; i < recordsNumber; i++){
             
-            if(!fread(buffer, sizeof(unsigned char),recordSize,rand_handle)){
+            if(fread(buffer, sizeof(unsigned char),recordSize,rand_handle)!= recordSize){
             printf("Reading from /dev/urandom failed, shutting down.");
             fclose(handle);
             fclose(rand_handle);
@@ -27,13 +29,18 @@ void generate_file(char *filePath, int recordsNumber, int recordSize){
                 if (buffer[j] < 26) buffer[j] = buffer[j] + 65;
                 else buffer[j] = buffer[j] + 71;
             }
-            if (!fwrite(buffer, sizeof(unsigned char), recordSize, handle)){
+
+            //printf("%s \n",buffer);
+            if (fwrite(buffer, sizeof(unsigned char), recordSize, handle) != recordSize){
                 printf("Writing to %s failed, shutting down.", filePath);
                 fclose(handle);
                 fclose(rand_handle);
                 exit(1);
             }
         }
+    } else {
+        printf("Something went wrong.\n");
+        //return;
     }
     fclose(handle);
     fclose(rand_handle);
@@ -41,6 +48,7 @@ void generate_file(char *filePath, int recordsNumber, int recordSize){
 
 void copy_file(char* sourceFileName, char* destFileName, int recordsNumber, int bufferSize){
     FILE* sourceFile = fopen(sourceFileName,"r");
+    //if(sourceFile==NULL) printf("%s\n",sourceFileName);
     FILE* destFile = fopen(destFileName,"w");
     unsigned char* buffer = calloc(bufferSize,sizeof(char));
     if(sourceFile && destFile){
@@ -58,6 +66,8 @@ void copy_file(char* sourceFileName, char* destFileName, int recordsNumber, int 
                 exit(1);
             }
         }
+    } else {
+        printf("Something went wrong.\n");
     }
     fclose(sourceFile);
     fclose(destFile);

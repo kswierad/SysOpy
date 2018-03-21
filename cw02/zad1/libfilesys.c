@@ -7,8 +7,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-void generate_file(char *filePath, int recordsNumber, int recordSize){
-    int handle = open(filePath, O_WRONLY | O_CREAT);
+void generate_file_sys(char *filePath, int recordsNumber, int recordSize){
+    int handle = open(filePath, O_WRONLY | O_CREAT, S_IRWXU);
     int rand_handle = open("/dev/urandom", O_RDONLY);
     unsigned char *buffer = calloc(recordSize, sizeof(char));
     if (handle && rand_handle){
@@ -40,9 +40,9 @@ void generate_file(char *filePath, int recordsNumber, int recordSize){
 }
 
 
-void copy_file(char *sourceFileName, char *destFileName, int recordsNumber, int bufferSize){
+void copy_file_sys(char *sourceFileName, char *destFileName, int recordsNumber, int bufferSize){
     int sourceFile = open(sourceFileName, O_RDONLY);
-    int destFile = open(destFileName, O_WRONLY|O_CREAT);
+    int destFile = open(destFileName, O_WRONLY|O_CREAT, S_IRWXU);
     unsigned char* buffer = calloc(bufferSize,sizeof(char));
     if(sourceFile && destFile){
         for(int i=0; i < recordsNumber; i++){
@@ -64,7 +64,7 @@ void copy_file(char *sourceFileName, char *destFileName, int recordsNumber, int 
     close(destFile);
 }
 
-void sort_file(char *filePath, int recordsNumber, int recordSize){
+void sort_file_sys(char *filePath, int recordsNumber, int recordSize){
     int handle = open(filePath, O_RDWR);
     char* bufferOne = calloc(recordSize,sizeof(char));
     char* bufferTwo = calloc(recordSize,sizeof(char));
