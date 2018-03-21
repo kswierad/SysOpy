@@ -108,3 +108,113 @@ for remove operation
  System time: 0.000000 
 for search operation 
  
+static library 
+
+50000 blocks each 512 wide (dynamic), searching for 100, replacing 10000 blocks, adding 10000 blocks 
+
+ Real time: 0.000000 
+ User time: 0.000000 
+ System time: 0.000000 
+for creating array
+ 
+ Real time: 0.360000 
+ User time: 0.350000 
+ System time: 0.010000 
+for filling array with data
+ 
+ Real time: 0.240000 
+ User time: 0.230000 
+ System time: 0.000000 
+for search operation 
+ 
+ Real time: 0.060000 
+ User time: 0.070000 
+ System time: 0.000000 
+for replace operation 
+ 
+ Real time: 0.080000 
+ User time: 0.060000 
+ System time: 0.000000 
+for add operation 
+ 
+50000 blocks each 512 wide (static), searching for 100, replacing 10000 blocks, adding 10000 blocks 
+
+ Real time: 0.000000 
+ User time: 0.000000 
+ System time: 0.000000 
+for creating array
+ 
+ Real time: 0.360000 
+ User time: 0.330000 
+ System time: 0.010000 
+for filling array with data
+ 
+ Real time: 0.230000 
+ User time: 0.240000 
+ System time: 0.000000 
+for search operation 
+ 
+ Real time: 0.080000 
+ User time: 0.070000 
+ System time: 0.000000 
+for replace operation 
+ 
+ Real time: 0.070000 
+ User time: 0.060000 
+ System time: 0.010000 
+for add operation 
+ 
+50000 blocks each 512 wide (dynamic), adding 10000 blocks, removing 10000 blocks, searching for 100 
+
+ Real time: 0.000000 
+ User time: 0.000000 
+ System time: 0.000000 
+for creating array
+ 
+ Real time: 0.370000 
+ User time: 0.340000 
+ System time: 0.010000 
+for filling array with data
+ 
+ Real time: 0.070000 
+ User time: 0.070000 
+ System time: 0.000000 
+for add operation 
+ 
+ Real time: 0.000000 
+ User time: 0.000000 
+ System time: 0.000000 
+for remove operation 
+ 
+ Real time: 0.190000 
+ User time: 0.190000 
+ System time: 0.000000 
+for search operation 
+ 
+50000 blocks each 512 wide (static), adding 10000 blocks, removing 10000 blocks, searching for 100 
+
+ Real time: 0.000000 
+ User time: 0.000000 
+ System time: 0.000000 
+for creating array
+ 
+ Real time: 0.350000 
+ User time: 0.320000 
+ System time: 0.020000 
+for filling array with data
+ 
+ Real time: 0.070000 
+ User time: 0.070000 
+ System time: 0.000000 
+for add operation 
+ 
+ Real time: 0.020000 
+ User time: 0.020000 
+ System time: 0.000000 
+for remove operation 
+ 
+ Real time: 0.180000 
+ User time: 0.180000 
+ System time: 0.000000 
+for search operation 
+ 
