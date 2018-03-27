@@ -13,25 +13,18 @@
 #define MAX_NUM_ARGS 32
 
 char** to_array(char* line){
-    //printf("to_array \n");
     char** result =  calloc(MAX_NUM_ARGS,sizeof(char*));
     char* buffer = calloc(MAX_NUM_ARGS,sizeof(char));
     for(int i=0; i < MAX_NUM_ARGS; i++){
-        //printf("allocating %d \n",i);
          result[i] = calloc(MAX_NUM_ARGS,sizeof(char));
     }
     int i=1;
     buffer = strtok(line," \n");
-    //printf("%s \n",buffer);
     strcpy(result[0],buffer);
-    //printf("%s \n",buffer);
     buffer = strtok(NULL," \n");
-    //printf("%s \n",buffer);
     while(buffer){
         strcpy(result[i],buffer);
-        
         buffer = strtok(NULL," \n");
-        //printf("%s \n",buffer);
         i++;
     }
     result[i] = NULL;
@@ -39,16 +32,12 @@ char** to_array(char* line){
 }
 
 int execute_line(FILE* file_handle){
-    //printf("execute \n");
     char* buffer = calloc(MAX_LINE_LENGTH,sizeof(char));
-
     if(!fgets(buffer,MAX_LINE_LENGTH,file_handle)) return 1;
     char** args_array = to_array(buffer);
-    //for(int i=0; i< MAX_NUM_ARGS; i++) printf("%s \n",args_array[i]);
     pid_t pid = fork();
     int status;
     if(pid){
-        //printf("Wlazłem se tam \n");
         waitpid( pid, &status, WUNTRACED );
         if(status) {
             printf("Executing command %s", args_array[0]);
@@ -64,10 +53,8 @@ int execute_line(FILE* file_handle){
         return 0;
 
     } else {
-        //printf("Wlazłem se tu \n");
         execvp(args_array[0],args_array);
-        
-        return 1;
+        exit(1);
     }
 
     fclose(file_handle);
@@ -84,10 +71,7 @@ int main(int argc, char* argv[]){
 
     }
     
-    while(!execute_line(file_handle)){
-        //printf("LECIM \n");
-    }
-    //printf("A tu jebie segfaulem \n");
+    while(!execute_line(file_handle));
     fclose(file_handle);
     return 0;
 }
