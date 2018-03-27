@@ -42,16 +42,16 @@ int main(int argc, char* argv[]){
     clock_t real_end;
 
     if(!strcmp(argv[1],"generate")){
-        if(sys) generate_file_sys(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10));
-        else generate_file(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10));
+        if(sys) generate_file_sys(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10+1));
+        else generate_file(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10)+1);
 
     } else if(!strcmp(argv[1],"sort")){
-        if(sys) sort_file_sys(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10));
-        else sort_file(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10));
+        if(sys) sort_file_sys(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10)+1);
+        else sort_file(argv[2], strtol(argv[3],NULL,10), strtol(argv[4],NULL,10)+1);
 
     } else if(!strcmp(argv[1],"copy")){
-        if(sys) copy_file_sys(argv[2], argv[3], strtol(argv[4],NULL,10), strtol(argv[5],NULL,10));
-        else copy_file(argv[2], argv[3], strtol(argv[4],NULL,10), strtol(argv[5],NULL,10));
+        if(sys) copy_file_sys(argv[2], argv[3], strtol(argv[4],NULL,10), strtol(argv[5],NULL,10)+1);
+        else copy_file(argv[2], argv[3], strtol(argv[4],NULL,10), strtol(argv[5],NULL,10)+1);
 
 
     } else {

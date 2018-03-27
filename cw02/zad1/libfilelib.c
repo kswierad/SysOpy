@@ -12,7 +12,7 @@ void generate_file(char *filePath, int recordsNumber, int recordSize){
     //if(handle==NULL) printf("%s\n",filePath);
     FILE *rand_handle = fopen("/dev/urandom", "r");
     //if(rand_handle==NULL) printf("KURWA\n");
-    unsigned char *buffer = calloc(recordSize, sizeof(char));
+    unsigned char *buffer = calloc(recordSize+1, sizeof(char));
     if (handle && rand_handle){
         for (int i = 0; i < recordsNumber; i++){
             
@@ -29,7 +29,7 @@ void generate_file(char *filePath, int recordsNumber, int recordSize){
                 if (buffer[j] < 26) buffer[j] = buffer[j] + 65;
                 else buffer[j] = buffer[j] + 71;
             }
-
+            buffer[recordSize-1]='\n';
             //printf("%s \n",buffer);
             if (fwrite(buffer, sizeof(unsigned char), recordSize, handle) != recordSize){
                 printf("Writing to %s failed, shutting down.", filePath);

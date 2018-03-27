@@ -116,7 +116,7 @@ int process_el(const char *fpath,const struct stat *sb, int typeflag, struct FTW
 
 
 int main(int argc,char* argv[]){
-
+#warning JESTE WORNINGIE
     path = argv[1];
     operant = argv[2];
     date = argv[3];

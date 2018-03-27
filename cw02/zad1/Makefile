@@ -89,6 +89,6 @@ clean:
 	rm -f *.o
 	rm -f *.a
 	rm -f *test*
-	rm -f *dane*
+	#rm -f *dane*
 	rm -f kule.txt
 	rm -f a.out
