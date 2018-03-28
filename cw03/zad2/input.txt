@@ -1,6 +1,8 @@
 ls -a
+HUJ KUDASDAS DASDASDSADASDASDASd
 ps
 echo "KURWA DZIAŁAM NO"
 echo "JAK NIE JAK TAK"
 ./prog jazda lelo kurwa
-chuj
+./prog 2 3 
+ASDASDASDA

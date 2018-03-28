@@ -32,8 +32,16 @@ char** to_array(char* line){
 }
 
 int execute_line(FILE* file_handle){
-    char* buffer = calloc(MAX_LINE_LENGTH,sizeof(char));
-    if(!fgets(buffer,MAX_LINE_LENGTH,file_handle)) return 1;
+    char* buffer = NULL;//malloc(MAX_LINE_LENGTH*sizeof(char));
+    size_t size = 0;//MAX_LINE_LENGTH;
+    if(getline(&buffer,&size,file_handle) != -1){
+        //printf("%s \n",buffer);
+
+    } else{
+        
+        printf("KONIEC \n");
+        return 1;
+    }
     char** args_array = to_array(buffer);
     pid_t pid = fork();
     int status;
@@ -42,7 +50,7 @@ int execute_line(FILE* file_handle){
         if(status) {
             printf("Executing command %s", args_array[0]);
             int i = 1;
-            if(args_array[0] != NULL) printf(", with arguments ");
+            if(args_array[1] != NULL) printf(", with arguments ");
             while(args_array[i] != NULL) {
                 printf("%s ", args_array[i]);
                 i++;
@@ -53,11 +61,13 @@ int execute_line(FILE* file_handle){
         return 0;
 
     } else {
+        //printf("TU JEST EXEC \n");
         execvp(args_array[0],args_array);
+       //printf("JESTES ZE EXEC \n");    
         exit(1);
     }
-
-    fclose(file_handle);
+    free(buffer);
+    //fclose(file_handle);
     return 0;
 }
 
