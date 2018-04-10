@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall
+CFLAGS = -Wall
 
 
 compile:

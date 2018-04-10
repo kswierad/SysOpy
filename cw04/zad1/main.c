@@ -5,45 +5,48 @@
 #include <stdio.h>
 #include <zconf.h>
 
-void catch(int signal){
+pid_t child = -1;
+void end(int signal){
     printf("Caught SIGINT, terminating.\n");
+    if(child!=-1){
+        kill(child,SIGTERM);
+    }
     exit(0);
 }
-int wait;
-void catch_sigstp(int signal){
-    /*struct sigaction act;
-    act.sa_handler = catch_sigstp;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(20,&act,NULL);*/
-    if(wait){
-        wait = 0;
-    } else{ 
-        wait = 1;
-        printf("Waiting for CTRL+Z - continuation or CTRL+C - terminate program\n");
-        sigset_t mask;
-        sigfillset(&mask);
-        sigdelset(&mask,2);
-        sigdelset(&mask,20);
-        sigsuspend(&mask);
-    }
+void handle_child(int signal){
+        if(child == -1){
+            child = fork();
+            if(child==0){
+                execlp("./date.sh","./date.sh",NULL);
+                exit(1);
+            }
+        } else{
+            printf("Waiting for CTRL+Z - continuation or CTRL+C - terminate program\n");
+            kill(child,SIGTERM);
+            child = -1;
+            sigset_t mask;
+            sigfillset(&mask);
+            sigdelset(&mask,2);
+            sigdelset(&mask,20);
+            sigsuspend(&mask);
+        }
+    
 }
 int main(){
-    signal(2, catch);
-    struct sigaction act;
-    act.sa_handler = catch_sigstp;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(20,&act,NULL);
-    wait = 0;
+    signal(SIGINT, end);
+    struct sigaction action;
+    action.sa_handler = handle_child;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction(20,&action,NULL);
+    
+    child = fork();
+    if(!child){
+        execlp("./date.sh","./date.sh",NULL);
+        exit(1);
+    }
+    
     while(1){
-        pid_t pid;
-        pid = fork();
-        if(!pid){
-            execlp("date","date",NULL);
-            exit(1);
-        }
-        sleep(1);
     }
 
     return 0;
