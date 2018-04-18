@@ -1,0 +1,2 @@
+ps -a | wc | wc -l
+ls -al | grep main
