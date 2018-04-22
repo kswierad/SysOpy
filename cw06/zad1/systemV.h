@@ -1,0 +1,27 @@
+#ifndef __SYSTEMV
+#define __SYSTEMV
+
+#define MIRROR  1
+#define CALC    2
+#define TIME    3
+#define END     4
+#define INIT    5
+#define STOP    6
+#define RPLY    7
+#define ERR     8
+#define UNDEF   9
+
+#define ID_SEED 1997
+
+#define MAX_MSG_TXT 100
+#define MSG_SIZE     sizeof(struct msgbuf)-sizeof(long)
+#define MAX_CLIENTS 2
+
+typedef struct msgbuf 
+{
+    long mtype;
+    char text[MAX_MSG_TXT];
+    pid_t sender_pid;
+}msgbuf;
+
+#endif
