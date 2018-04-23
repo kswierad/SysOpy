@@ -98,10 +98,10 @@ void readMsg(msg_buf* message){
         case INIT:
             init(message);
             break;
-/*        case STOP:
+        case STOP:
             stop(message);
             break;
-        case RPLY:
+ /*       case RPLY:
             rply(message);
             break;*/
         default:
@@ -141,8 +141,6 @@ void calc(msg_buf* message){
 
 void init(msg_buf* message){
     int CID = getEmptyCID();
-    message->mtype = INIT;
-    message->sender_pid = getpid();
 
     if(CID == -1) {
         sscanf(message->text, "%d", &CID);
@@ -152,7 +150,6 @@ void init(msg_buf* message){
 
     key_t clientQKey;
     if(sscanf(message->text, "%d", &clientQKey) < 0) FAILURE_EXIT(3, "Reading clientKey failed!");
-    //TU DEBUG"
     clients[CID][QID] = msgget(clientQKey, 0);
     if(clients[CID][QID] == -1) FAILURE_EXIT(3, "Reading clientQID failed!");
     clients[CID][PID] = message->sender_pid;
@@ -180,7 +177,19 @@ void time_rcv(msg_buf* message){
     if(msgsnd(clientQID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "TIME response failed!");
 }
 
-void rply(msg_buf* message);
+void stop(msg_buf* message){
+    int clientQID;
+    int i;
+    for(i = 0; i < MAX_CLIENTS; i++){
+        if(clients[i][PID] == message->sender_pid){
+            clientQID = clients[i][QID];
+            break;       
+        }
+    }
+    msgctl(clientQID, IPC_RMID, NULL);
+    printf("Deleted clients queue. \n");
+    clients[i][ACTIVE] = 0;
+}
 
 int prepareMsg(struct msg_buf* message){
     int clientQID = findQID(message->sender_pid);

@@ -13,9 +13,9 @@
 
 #define ID_SEED 123
 
-#define MAX_MSG_TXT 100
-#define MSG_SIZE     sizeof(struct msgbuf)-sizeof(long)
-#define MAX_CLIENTS 2
+#define MAX_MSG_TXT 4096
+#define MSG_SIZE     sizeof(struct msg_buf)-sizeof(long)
+#define MAX_CLIENTS 10
 
 typedef struct msg_buf 
 {

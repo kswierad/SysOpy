@@ -14,7 +14,7 @@
 
 #include "systemV.h"
 
-#define FAILURE_EXIT(code, format, ...) { fprintf(stderr, format, ##__VA_ARGS__); exit(code);}
+#define FAILURE_EXIT(code, format, ...) { fprintf(stderr, format, ##__VA_ARGS__);printf("\n"); exit(code);}
 
 #define PID 0
 #define QID 1
@@ -30,6 +30,8 @@ int clients[MAX_CLIENTS][3];
 void deleteQueue(){
     msgctl(privateID, IPC_RMID, NULL);
     printf("Deleted private queue. \n");
+    msg_buf message;
+    rq_stop(&message);
 }
 
 void register_client(int privateKey);
@@ -40,6 +42,7 @@ void rq_calc(msg_buf* message);
 void rq_end(msg_buf* message);
 
 void rq_time(msg_buf* message);
+void rq_stop(msg_buf* message);
 /*void intHandler(int signum){
     for(int i=0; i < MAX_CLIENTS; i++){
         if(clients[i][ACTIVE]){
@@ -64,13 +67,13 @@ int main(){
     if(home == NULL) FAILURE_EXIT(3, "Getting enviromental variable 'HOME' failed!");
 
     key_t privateKey = ftok(home, getpid());
-    if(privateKey == -1) FAILURE_EXIT(3, "Generation of publicKey failed!");
+    if(privateKey == -1) FAILURE_EXIT(3, "Generation of private Key failed!");
 
     privateID = msgget(privateKey, IPC_CREAT | IPC_EXCL | 0666);
-    if(privateID == -1) FAILURE_EXIT(3, "Creation of public queue failed!");
+    if(privateID == -1) FAILURE_EXIT(3, "Creation of private queue failed!");
 
     key_t publicKey = ftok(home, ID_SEED);
-    if(publicKey == -1) FAILURE_EXIT(3, "Generation of publicKey failed!");
+    if(publicKey == -1) FAILURE_EXIT(3, "Generation of public Key failed!");
 
     publicID = msgget(publicKey, 0);
     if(publicID == -1) FAILURE_EXIT(3, "Creation of public queue failed!");
@@ -115,9 +118,7 @@ void register_client(int privateKey){
     sprintf(message.text, "%d", privateKey);
 
     if(msgsnd(publicID, &message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "INIT request failed!");
-    printf("Waiting for response \n");
     if(msgrcv(privateID, &message, MSG_SIZE, 0, 0) == -1) FAILURE_EXIT(3, "catching LOGIN response failed!");
-    printf("got response \n");
     if(sscanf(message.text, "%d", &CID) < 1) FAILURE_EXIT(3, "scanning INIT response failed!");
     if(CID < 0) FAILURE_EXIT(3, "Server cannot have more clients!");
 }
@@ -150,6 +151,12 @@ void rq_calc(msg_buf* message){
 void rq_end(msg_buf* message){
     message->mtype = END;
     if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "END request failed!");
+    exit(2);
+}
+
+void rq_stop(msg_buf* message){
+    message->mtype = STOP;
+    if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "STOP request failed!");
 }
 
 void rq_time(msg_buf* message){
