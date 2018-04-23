@@ -6,13 +6,13 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
+#include <mqueue.h>
 #include <ctype.h>
 #include <time.h>
+#include <fcntl.h>
 #include <signal.h>
 
-#include "systemV.h"
+#include "POSIX.h"
 
 #define FAILURE_EXIT(code, format, ...) { fprintf(stderr, format, ##__VA_ARGS__);printf("\n"); exit(code);}
 
@@ -57,24 +57,24 @@ int main(){
     if(atexit(deleteQueue) == -1) FAILURE_EXIT(3, "Registering server's atexit failed!");
     if(signal(SIGINT, intHandler) == SIG_ERR) FAILURE_EXIT(3, "Registering INT failed!");
 
-    struct msqid_ds public_state;
-    char* home = getenv("HOME");
-    if(home == NULL) FAILURE_EXIT(3, "Getting enviromental variable 'HOME' failed!");
+    struct mq_attr currentState;
 
-    key_t publicKey = ftok(home, ID_SEED);
-    if(publicKey == -1) FAILURE_EXIT(3, "Generation of publicKey failed!");
+    struct mq_attr posixAttr;
+    posixAttr.mq_maxmsg = MAX_MSG;
+    posixAttr.mq_msgsize = MSG_SIZE;
+    publicID = mq_open(SERVER_PATH, O_RDONLY | O_CREAT | O_EXCL, 0666, &posixAttr);
 
-    publicID = msgget(publicKey, IPC_CREAT | IPC_EXCL | 0666);
+
     if(publicID == -1) FAILURE_EXIT(3, "Creation of public queue failed!");
 
     msg_buf buffer;
     while(1){
         if(quit){
-            if(msgctl(publicID, IPC_STAT, &public_state) == -1) FAILURE_EXIT(3, "Getting current state of public queue failed!\n");
-            if(public_state.msg_qnum == 0) break;
+            if(mq_getattr(publicID, &currentState) == -1) FAILURE_EXIT(3, "Couldnt read public queue parameters!");
+            if(currentState.mq_curmsgs == 0) exit(0);
         }
 
-        if(msgrcv(publicID, &buffer, MSG_SIZE, 0, 0) < 0) FAILURE_EXIT(3, "Receiving message failed!");
+        if(mq_receive(publicID, (char *) &buffer,MSG_SIZE,NULL) < 0) FAILURE_EXIT(3, "Receiving message failed!");
         readMsg(&buffer);
     }
 }
@@ -123,7 +123,7 @@ void mirror(msg_buf* message){
         message->text[msgLen - i - 1] = buff;
     }
 
-    if(msgsnd(clientQID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "MIRROR response failed!");
+    if(mq_send(clientQID, message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "MIRROR response failed!");
 }
 
 void calc(msg_buf* message){
@@ -136,27 +136,27 @@ void calc(msg_buf* message){
     fgets(message->text, MAX_MSG_TXT, calc);
     pclose(calc);
 
-     if(msgsnd(clientQID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "CALC response failed!");
+     if(mq_send(clientQID, message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "CALC response failed!");
 }
 
 void init(msg_buf* message){
     int CID = getEmptyCID();
-    
-    key_t clientQKey;
-    if(sscanf(message->text, "%d", &clientQKey) < 0) FAILURE_EXIT(3, "Reading clientKey failed!");
-    
-    int clientQID = msgget(clientQKey, 0);
-    
-    if(clientQID == -1) FAILURE_EXIT(3, "Reading clientQID failed!");
+    char *clientPath;
+    if(sscanf(message->text, "%s", &clientPath) < 0) FAILURE_EXIT(3, "Reading clientKey failed!");
+    int clientQID = mq_open(clientPath, O_WRONLY);
+
+
 
     if(CID == -1) {
         sscanf(message->text, "%d", &CID);
-        if(msgsnd(clientQID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "INIT response failed!");
+        if(msgsnd(clients[CID][QID], message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "INIT response failed!");
         return;
     }
 
+    
+    clients[CID][QID] = msgget(clientQKey, 0);
+    if(clients[CID][QID] == -1) FAILURE_EXIT(3, "Reading clientQID failed!");
     clients[CID][PID] = message->sender_pid;
-    clients[CID][QID] = clientQID;
     message->mtype = INIT;
     message->sender_pid = getpid();
     sprintf(message->text, "%d", CID);
@@ -178,7 +178,7 @@ void time_rcv(msg_buf* message){
     fgets(message->text, MAX_MSG_TXT, date);
     pclose(date);
 
-    if(msgsnd(clientQID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "TIME response failed!");
+    if(mq_send(clientQID, message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "TIME response failed!");
 }
 
 void stop(msg_buf* message){
