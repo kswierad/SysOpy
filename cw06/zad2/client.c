@@ -86,7 +86,8 @@ int main(){
     struct mq_attr posixAttr;
     posixAttr.mq_maxmsg = MAX_MSG;
     posixAttr.mq_msgsize = MSG_SIZE; 
-    printf("%s \n",privatePath);
+    printf("Connecting with queue name: %s \n",privatePath);
+    printf("with pid: %d \n",getpid());
     privateID = mq_open(privatePath,O_RDONLY | O_CREAT | O_EXCL, 0666, &posixAttr);
     if(privateID == -1) FAILURE_EXIT(3, "Creation of private queue failed!");
 
@@ -141,6 +142,7 @@ void register_client(char* privatePath){
 void rq_mirror(msg_buf* message){
     
     message->mtype = MIRROR;
+    message->sender_pid = getpid();
     printf("Enter string of characters to mirror: ");
     if(fgets(message->text, MAX_MSG_TXT, stdin) == NULL){
         printf("Too many characters!\n");
@@ -153,6 +155,7 @@ void rq_mirror(msg_buf* message){
 
 void rq_calc(msg_buf* message){
     message->mtype = CALC;
+    message->sender_pid = getpid();
     printf("Enter an expression to calculate: ");
     if(fgets(message->text, MAX_MSG_TXT, stdin) == NULL){
         printf("Too many characters!\n");
@@ -165,17 +168,20 @@ void rq_calc(msg_buf* message){
 
 void rq_end(msg_buf* message){
     message->mtype = END;
+    message->sender_pid = getpid();
     if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "END request failed!");
     exit(2);
 }
 
 void rq_stop(msg_buf* message){
     message->mtype = STOP;
+    message->sender_pid = getpid();
     if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "STOP request failed!");
 }
 
 void rq_time(msg_buf* message){
     message->mtype = TIME;
+    message->sender_pid = getpid();
 
     if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "TIME request failed!");
     if(mq_receive(privateID,(char*) message, MSG_SIZE, NULL) == -1) FAILURE_EXIT(3, "catching TIME response failed!");

@@ -15,9 +15,9 @@
 
 #define MAX_MSG 10
 #define MAX_MSG_TXT 4096
-#define MSG_SIZE     sizeof(struct msg_buf)-sizeof(long)
+#define MSG_SIZE     sizeof(struct msg_buf)
 #define MAX_CLIENTS 10
-#define SERVER_PATH "/server1"
+#define SERVER_PATH "/server"
 typedef struct msg_buf 
 {
     long mtype;

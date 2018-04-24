@@ -39,6 +39,12 @@ int quit = 0;
 int clients[MAX_CLIENTS][3];
 
 void deleteQueue(){
+    msg_buf message;
+    for(int i=0; i < MAX_CLIENTS; i++){
+        if(clients[i][ACTIVE]){
+            kill(clients[i][PID],SIGINT);
+        }
+    }
     mq_close(publicID);
     if(!mq_unlink(SERVER_PATH)) printf("Deleted public queue. \n");
 }
@@ -144,7 +150,7 @@ void init(msg_buf* message){
     //if(sscanf(message->text, "%s", &clientPath) < 0) FAILURE_EXIT(3, "Reading clientKey failed!");
     mqd_t clientQID = mq_open(clientPath, O_WRONLY);
     if(clientQID == -1) FAILURE_EXIT(3, "Opening clients queue failed!");
-    printf("Client with queue named %s connected.\n",clientPath);
+    printf("Client with queue named %s connected,\n",clientPath);
 
 
     if(CID == -1) {
@@ -153,6 +159,7 @@ void init(msg_buf* message){
         return;
     }
     clients[CID][PID] = message->sender_pid;
+    printf("with pid: %d \n",clients[CID][PID]);
     clients[CID][QID] = clientQID;
     message->mtype = INIT;
     message->sender_pid = getpid();
