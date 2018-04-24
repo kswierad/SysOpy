@@ -33,14 +33,14 @@ int getEmptyCID();
 #define QID 1
 #define ACTIVE 2
 
-int publicID;
+mqd_t publicID;
 
 int quit = 0;
 int clients[MAX_CLIENTS][3];
 
 void deleteQueue(){
-    msgctl(publicID, IPC_RMID, NULL);
-    printf("Deleted public queue. \n");
+    mq_close(publicID);
+    if(!mq_unlink(SERVER_PATH)) printf("Deleted public queue. \n");
 }
 
 void intHandler(int signum){
@@ -56,7 +56,6 @@ void intHandler(int signum){
 int main(){
     if(atexit(deleteQueue) == -1) FAILURE_EXIT(3, "Registering server's atexit failed!");
     if(signal(SIGINT, intHandler) == SIG_ERR) FAILURE_EXIT(3, "Registering INT failed!");
-
     struct mq_attr currentState;
 
     struct mq_attr posixAttr;
@@ -123,7 +122,7 @@ void mirror(msg_buf* message){
         message->text[msgLen - i - 1] = buff;
     }
 
-    if(mq_send(clientQID, message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "MIRROR response failed!");
+    if(mq_send(clientQID, (char *) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "MIRROR response failed!");
 }
 
 void calc(msg_buf* message){
@@ -136,32 +135,30 @@ void calc(msg_buf* message){
     fgets(message->text, MAX_MSG_TXT, calc);
     pclose(calc);
 
-     if(mq_send(clientQID, message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "CALC response failed!");
+     if(mq_send(clientQID,(char *) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "CALC response failed!");
 }
 
 void init(msg_buf* message){
     int CID = getEmptyCID();
-    char *clientPath;
-    if(sscanf(message->text, "%s", &clientPath) < 0) FAILURE_EXIT(3, "Reading clientKey failed!");
-    int clientQID = mq_open(clientPath, O_WRONLY);
-
+    char *clientPath = message->text;
+    //if(sscanf(message->text, "%s", &clientPath) < 0) FAILURE_EXIT(3, "Reading clientKey failed!");
+    mqd_t clientQID = mq_open(clientPath, O_WRONLY);
+    if(clientQID == -1) FAILURE_EXIT(3, "Opening clients queue failed!");
+    printf("Client with queue named %s connected.\n",clientPath);
 
 
     if(CID == -1) {
         sscanf(message->text, "%d", &CID);
-        if(msgsnd(clients[CID][QID], message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "INIT response failed!");
+        if(mq_send(clients[CID][QID],(char *) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "INIT response failed!");
         return;
     }
-
-    
-    clients[CID][QID] = msgget(clientQKey, 0);
-    if(clients[CID][QID] == -1) FAILURE_EXIT(3, "Reading clientQID failed!");
     clients[CID][PID] = message->sender_pid;
+    clients[CID][QID] = clientQID;
     message->mtype = INIT;
     message->sender_pid = getpid();
     sprintf(message->text, "%d", CID);
 
-    if(msgsnd(clients[CID][QID], message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "INIT response failed!");
+    if(mq_send(clients[CID][QID],(char *) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "INIT response failed!");
 
 }
 
@@ -178,7 +175,7 @@ void time_rcv(msg_buf* message){
     fgets(message->text, MAX_MSG_TXT, date);
     pclose(date);
 
-    if(mq_send(clientQID, message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "TIME response failed!");
+    if(mq_send(clientQID,(char *) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "TIME response failed!");
 }
 
 void stop(msg_buf* message){
@@ -190,8 +187,8 @@ void stop(msg_buf* message){
             break;       
         }
     }
-    msgctl(clientQID, IPC_RMID, NULL);
-    printf("Deleted clients queue. \n");
+    mq_close(clientQID);
+    printf("Closed clients queue. \n");
     clients[i][ACTIVE] = 0;
 }
 

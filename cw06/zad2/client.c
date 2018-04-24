@@ -20,21 +20,16 @@
 #define QID 1
 #define ACTIVE 2
 
-int privateID;
+mqd_t privateID;
+char* privatePath;
 int CID;
-int publicID;
+mqd_t publicID;
 
 int quit = 0;
 int clients[MAX_CLIENTS][3];
 
-void deleteQueue(){
-    msgctl(privateID, IPC_RMID, NULL);
-    printf("Deleted private queue. \n");
-    msg_buf message;
-    rq_stop(&message);
-}
 
-void register_client(int privateKey);
+void register_client(char* privatePath);
 
 void rq_mirror(msg_buf* message);
 
@@ -52,33 +47,53 @@ void rq_stop(msg_buf* message);
     exit(2);
     
 }*/
+void deleteQueue(){
+    msg_buf message;
+    rq_stop(&message);
+    mq_close(publicID);
+    mq_close(privateID);
+    mq_unlink(privatePath);
+    printf("Deleted private queue. \n");
+    
+    
+    
+}
 
 void intHandler(int signo){
     exit(2);
 }
 
-
+char* generate_path(){
+    FILE* random_handle = fopen("/dev/urandom","r");
+    unsigned char *result = calloc(15,sizeof(char));
+    fread(result,sizeof(unsigned char),15,random_handle);
+    for (int j = 0; j < 15; j++){
+        result[j] = result[j] % 52;
+        if (result[j] < 26) result[j] = result[j] + 65;
+        else result[j] = result[j] + 71;
+    }
+    result[0] = '/';
+    result[14] = 0;
+    fclose(random_handle);
+    return result;
+}
 
 int main(){
     if(atexit(deleteQueue) == -1) FAILURE_EXIT(3, "Registering server's atexit failed!");
     if(signal(SIGINT, intHandler) == SIG_ERR) FAILURE_EXIT(3, "Registering INT failed!");
 
-    char* home = getenv("HOME");
-    if(home == NULL) FAILURE_EXIT(3, "Getting enviromental variable 'HOME' failed!");
-
-    key_t privateKey = ftok(home, getpid());
-    if(privateKey == -1) FAILURE_EXIT(3, "Generation of private Key failed!");
-
-    privateID = msgget(privateKey, IPC_CREAT | IPC_EXCL | 0666);
+    privatePath = generate_path();
+    struct mq_attr posixAttr;
+    posixAttr.mq_maxmsg = MAX_MSG;
+    posixAttr.mq_msgsize = MSG_SIZE; 
+    printf("%s \n",privatePath);
+    privateID = mq_open(privatePath,O_RDONLY | O_CREAT | O_EXCL, 0666, &posixAttr);
     if(privateID == -1) FAILURE_EXIT(3, "Creation of private queue failed!");
 
-    key_t publicKey = ftok(home, ID_SEED);
-    if(publicKey == -1) FAILURE_EXIT(3, "Generation of public Key failed!");
-
-    publicID = msgget(publicKey, 0);
+    publicID = mq_open(SERVER_PATH, O_WRONLY);
     if(publicID == -1) FAILURE_EXIT(3, "Creation of public queue failed!");
     
-    register_client(privateKey);
+    register_client(privatePath);
     
     msg_buf message;
     char command[20];
@@ -111,14 +126,14 @@ int main(){
     return 0;
 }
 
-void register_client(int privateKey){
+void register_client(char* privatePath){
     msg_buf message;
     message.mtype = INIT;
     message.sender_pid = getpid();
-    sprintf(message.text, "%d", privateKey);
+    sprintf(message.text, "%s", privatePath);
 
-    if(msgsnd(publicID, &message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "INIT request failed!");
-    if(msgrcv(privateID, &message, MSG_SIZE, 0, 0) == -1) FAILURE_EXIT(3, "catching LOGIN response failed!");
+    if(mq_send(publicID,(char*) &message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "INIT request failed!");
+    if(mq_receive(privateID, (char*) &message, MSG_SIZE, NULL) == -1) FAILURE_EXIT(3, "catching LOGIN response failed!");
     if(sscanf(message.text, "%d", &CID) < 1) FAILURE_EXIT(3, "scanning INIT response failed!");
     if(CID < 0) FAILURE_EXIT(3, "Server cannot have more clients!");
 }
@@ -131,8 +146,8 @@ void rq_mirror(msg_buf* message){
         printf("Too many characters!\n");
         return;
     }
-    if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "MIRROR request failed!");
-    if(msgrcv(privateID, message, MSG_SIZE, 0, 0) == -1) FAILURE_EXIT(3, "catching MIRROR response failed!");
+    if(mq_send(publicID, (char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "MIRROR request failed!");
+    if(mq_receive(privateID,(char*) message, MSG_SIZE, NULL) == -1) FAILURE_EXIT(3, "catching MIRROR response failed!");
     printf("%s", message->text);
 }
 
@@ -143,26 +158,26 @@ void rq_calc(msg_buf* message){
         printf("Too many characters!\n");
         return;
     }
-    if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "CALC request failed!");
-    if(msgrcv(privateID, message, MSG_SIZE, 0, 0) == -1) FAILURE_EXIT(3, "catching CALC response failed!");
+    if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "CALC request failed!");
+    if(mq_receive(privateID,(char*) message, MSG_SIZE, NULL) == -1) FAILURE_EXIT(3, "catching CALC response failed!");
     printf("%s", message->text);
 }
 
 void rq_end(msg_buf* message){
     message->mtype = END;
-    if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "END request failed!");
+    if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "END request failed!");
     exit(2);
 }
 
 void rq_stop(msg_buf* message){
     message->mtype = STOP;
-    if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "STOP request failed!");
+    if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "STOP request failed!");
 }
 
 void rq_time(msg_buf* message){
     message->mtype = TIME;
 
-    if(msgsnd(publicID, message, MSG_SIZE, 0) == -1) FAILURE_EXIT(3, "TIME request failed!");
-    if(msgrcv(privateID, message, MSG_SIZE, 0, 0) == -1) FAILURE_EXIT(3, "catching TIME response failed!");
+    if(mq_send(publicID,(char*) message, MSG_SIZE, 1) == -1) FAILURE_EXIT(3, "TIME request failed!");
+    if(mq_receive(privateID,(char*) message, MSG_SIZE, NULL) == -1) FAILURE_EXIT(3, "catching TIME response failed!");
     printf("%s", message->text);
 }
