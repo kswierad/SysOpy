@@ -6,6 +6,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sys/resource.h> 
+#include <time.h>
+#include <unistd.h>
  
 #define FAILURE_EXIT(format, ...) {                                            \
     printf(format , ##__VA_ARGS__);                       \
@@ -35,12 +37,15 @@ int C;
 int W;
 int H;
 
+clock_t start;
+clock_t finish;
+struct tms *tmsstart;
+struct tms *tmsfinish;
 
 
 int main(int argc, char* argv[]){
 
     if(argc!=5) FAILURE_EXIT("Wrong number of arguments!\n");
-    printf("test\n");
     number_thr = (int) atoi(argv[1]);
     char *input = argv[2];
     char *filter_file = argv[3];
@@ -48,25 +53,27 @@ int main(int argc, char* argv[]){
 
     
     open_picture(input);
-    printf("test\n");
     open_filter(filter_file);
-    printf("test\n");
     
     
 
     pthread_t threads[number_thr];
 
+    start = times(tmsstart);
 
     for(int i=0; i<number_thr; i++){
         pthread_create(&threads[i],NULL,thread_action,(void *)i);
     }
-    printf("test\n");
+
     for(int i=0; i<number_thr; i++){
         pthread_join(threads[i],NULL);
     }
 
+    long ticks = sysconf(_SC_CLK_TCK);
+    finish = times(tmsfinish);
+    printf("Czas rzeczywisty: %f\n", (finish - start) / (double)ticks);
+
     save_picture(output);
-    printf("test\n");
 }
 
 int calculate_pixel(int x, int y) {
@@ -102,7 +109,6 @@ void open_picture(char* file){
     if(input_file == NULL) FAILURE_EXIT("Couldn't open input file! \n");
     int maxval;
     fscanf(input_file, "P2 %d %d %d", &W, &H, &maxval);
-    printf("test\n");
     if (maxval != 255)
     FAILURE_EXIT("Wrong file format: Wrong max value!");
 
