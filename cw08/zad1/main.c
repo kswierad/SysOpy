@@ -13,14 +13,13 @@
     printf(format , ##__VA_ARGS__);                       \
     exit(-1);                                                                  }
 
-#define max(a, b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-#define min(c, d) \
-   ({ __typeof__ (c) _c = (c); \
-       __typeof__ (d) _d = (d); \
-_c > _d ? _d : _c; })
+int max(int a, int b){
+    return a > b ? a : b;
+}
+
+int min(int a, int b){
+    return a < b ? a : b;
+}
 
 int calculate_pixel(int x, int y);
 void *thread_action(void* line);
@@ -77,14 +76,13 @@ int main(int argc, char* argv[]){
 }
 
 int calculate_pixel(int x, int y) {
-    int i,j;
     double value = 0;
-    for(i = 0; i < C; ++i) {
-        for(j = 0; j < C; ++j) {
+    for(int i = 0; i < C; ++i) {
+        for(int j = 0; j < C; ++j) {
             int a = max(1, x - (int)ceil(C/2) + i+1);
-            a = min(a,H);
+            a = min(a,W);
             int b = max(1, y - (int)ceil(C/2) + j+1);
-            b = min(b,W);
+            b = min(b,H);
             a--;
             b--;
             value += picture[a][b] * filter[i][j];
@@ -93,15 +91,31 @@ int calculate_pixel(int x, int y) {
     return (int) round(value);
 }
 
-void *thread_action(void* line){
-    int line_number = (int) line;
-    for(int i=line_number*W/number_thr; i < (line_number+1)*W/number_thr; i++ ){
-        for(int j = 0; j < H; j++){
-            filtered[i][j] = calculate_pixel(i,j);
+int filterPixel( int x, int y){
+    double newVal=0.0;
+    for(int i=0;i<C;i++){
+        for(int j=0;j<C;j++){
+            //newVal+=picture[min(W,max(1, x-(int) ceil(C/2.0) + i+1))-1][min(H,max(1, y-(int)ceil(C/2.0)+j+1))-1] * filter[i][j];
+            newVal+=picture[max(0, x-ceil(C/2.0) + i+1)][max(0, y-ceil(C/2.0)+j+1)] * filter[i][j];
+            //[min(imgHeight, max(1,(x+1) - (int)ceil((double)filterSize/2.0) + (i+1))) -1]
+            //[min(imgWidth , max(1,(y+1) - (int)ceil((double)filterSize/2.0) + (j+1))) -1] * filterBuffer[i][j];
         }
     }
-    pthread_exit(NULL);
+    newVal = round(newVal);
+    return (int) newVal;
 }
+void *thread_action(void* line){
+    int line_number = (int) line;
+    printf("line#%d\n",line_number);
+    for(int i = line_number; i < W; i+=number_thr){
+        for(int j=0; j < H; j++ ){
+            
+            filtered[i][j] = calculate_pixel(i,j);
+        }
+        
+    }
+    pthread_exit(NULL);
+}   
 
 void open_picture(char* file){
     FILE *input_file;
@@ -109,6 +123,7 @@ void open_picture(char* file){
     if(input_file == NULL) FAILURE_EXIT("Couldn't open input file! \n");
     int maxval;
     fscanf(input_file, "P2 %d %d %d", &W, &H, &maxval);
+    printf("Width: %d, Height: %d\n",W,H);
     if (maxval != 255)
     FAILURE_EXIT("Wrong file format: Wrong max value!");
 
@@ -124,7 +139,7 @@ void open_picture(char* file){
 
     for(int i = 0; i < H; i++) {
         for(int j = 0; j < W; j++){
-            fscanf(input_file, "%i", &picture[i][j]);
+            fscanf(input_file, "%i", &picture[j][i]);
         }
     }
 
@@ -146,7 +161,7 @@ void open_filter(char* file){
 
     for(int i = 0; i < C; i++){
         for(int j = 0; j < C; j++){
-            fscanf(filter_file, "%lf",&filter[i][j]);
+            fscanf(filter_file, "%lf",&filter[i][j]);   
         }
     }
 
@@ -157,7 +172,7 @@ void save_picture(char* file){
         fprintf(output_file,"P2\n%d %d\n255\n",W,H);
         for(int i = 0; i < H; i++){
             for(int j = 0; j < W; j++){
-                fprintf(output_file,"%d ",filtered[i][j]);
+                fprintf(output_file,"%d ",filtered[j][i]);
             }
             fprintf(output_file,"\n");
         }
