@@ -4,11 +4,13 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <semaphore.h>
 
 
-pthread_mutex_t buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t empty_buffer_cond = PTHREAD_COND_INITIALIZER;
-pthread_cond_t full_buffer_cond = PTHREAD_COND_INITIALIZER;
+
+sem_t buffer_sem;
+sem_t empty_buffer_sem;
+sem_t full_buffer_sem;
 pthread_t *prods;
 pthread_t *cons;
 
@@ -34,12 +36,9 @@ int last_written = 0;
 
 void *consumer(void *argument){
     while(1) {
-        pthread_mutex_lock(&buffer_mutex);
-        while(in_buffer == 0){
-            //pthread_mutex_unlock(&buffer_mutex);
-            pthread_cond_wait(&empty_buffer_cond, &buffer_mutex);
-            //pthread_mutex_lock(&buffer_mutex);
-        }
+        sem_wait(&empty_buffer_sem);
+        sem_wait(&buffer_sem);
+
         char *line = malloc(sizeof(char)*MAX_LINE_SIZE);
         strcpy(line,buffer[last_read]);
        
@@ -61,8 +60,8 @@ void *consumer(void *argument){
         if(buffer[last_read]) free(buffer[last_read]);
         last_read = (last_read + 1) % N;
         in_buffer--;
-        if(in_buffer == N -1) pthread_cond_broadcast(&full_buffer_cond);
-        pthread_mutex_unlock(&buffer_mutex);
+        sem_post(&full_buffer_sem);
+        sem_post(&buffer_sem);
         //printf("cons2\n");
     }
 }
@@ -71,15 +70,11 @@ void *producer(void *argument){
     size_t line_size = 0;
     char* line = NULL;
     while(1){
-        pthread_mutex_lock(&buffer_mutex);
-        while(in_buffer==N){
-            //pthread_mutex_unlock(&buffer_mutex);
-            pthread_cond_wait(&full_buffer_cond, &buffer_mutex);
-            //pthread_mutex_lock(&buffer_mutex);
-        }
+        sem_wait(&full_buffer_sem);
+        sem_wait(&buffer_sem);
 
         if(getline(&line,&line_size,file_handle) <= 0){
-            pthread_mutex_unlock(&buffer_mutex);
+            sem_post(&buffer_sem);
             printf("Stopped reading file! \n");
             break;
         }
@@ -98,9 +93,8 @@ void *producer(void *argument){
         }
         last_written = (last_written+1)%N;
         in_buffer++;
-        if(in_buffer == 1) pthread_cond_broadcast(&empty_buffer_cond);
-        pthread_mutex_unlock(&buffer_mutex);
-        //printf("prod2 \n");
+        sem_post(&empty_buffer_sem);
+        sem_post(&buffer_sem);
     }
 }
 
@@ -109,9 +103,9 @@ void close_up(){
     for(int i=0; i < P; i++) pthread_cancel(prods[i]);
     fclose(file_handle);
     if(buffer) free(buffer);
-    pthread_mutex_destroy(&buffer_mutex);
-    pthread_cond_destroy(&empty_buffer_cond);
-    pthread_cond_destroy(&full_buffer_cond);
+    sem_destroy(&buffer_sem);
+    sem_destroy(&full_buffer_sem);
+    sem_destroy(&empty_buffer_sem);
 }
 
 void sig_func(int signum){
@@ -137,6 +131,10 @@ int main(int argc, char* argv[]){
         FAILURE_EXIT("Couldn't read from configuration file!\n");
     printf("%d %d %d %s %d %d %d %d \n", P, K, N, src_file, L, operand, mode, nk);
     fclose(conf_file);
+
+    sem_init(&buffer_sem, 0, 1);
+    sem_init(&full_buffer_sem, 0, N);
+    sem_init(&empty_buffer_sem, 0, 0);
     
     prods = malloc(sizeof(pthread_t)*P);
     cons = malloc(sizeof(pthread_t)*K);
@@ -157,9 +155,9 @@ int main(int argc, char* argv[]){
     for(int i = 0; i < P; i++) pthread_join(prods[i], NULL);    
 
     while (1){
-        pthread_mutex_lock(&buffer_mutex);
+        sem_wait(&buffer_sem);
         if (in_buffer == 0) break;
-        pthread_mutex_unlock(&buffer_mutex);
+        sem_post(&buffer_sem);
     }
     while(nk);
 
