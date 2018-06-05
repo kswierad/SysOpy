@@ -33,6 +33,7 @@ int last_written = 0;
 
 
 void *consumer(void *argument){
+    char *line;
     while(1) {
         pthread_mutex_lock(&buffer_mutex);
         while(in_buffer == 0){
@@ -40,8 +41,10 @@ void *consumer(void *argument){
             pthread_cond_wait(&empty_buffer_cond, &buffer_mutex);
             //pthread_mutex_lock(&buffer_mutex);
         }
-        char *line = malloc(sizeof(char)*MAX_LINE_SIZE);
-        strcpy(line,buffer[last_read]);
+        //line = malloc(sizeof(char)*MAX_LINE_SIZE);
+        //strcpy(line,buffer[last_read]);
+        line = buffer[last_read];
+        buffer[last_read] = NULL;
        
         
 
@@ -63,7 +66,7 @@ void *consumer(void *argument){
         in_buffer--;
         if(in_buffer == N -1) pthread_cond_broadcast(&full_buffer_cond);
         pthread_mutex_unlock(&buffer_mutex);
-        //printf("cons2\n");
+
     }
 }
 
@@ -98,9 +101,10 @@ void *producer(void *argument){
         }
         last_written = (last_written+1)%N;
         in_buffer++;
+        line_size = 0;
         if(in_buffer == 1) pthread_cond_broadcast(&empty_buffer_cond);
         pthread_mutex_unlock(&buffer_mutex);
-        //printf("prod2 \n");
+
     }
 }
 

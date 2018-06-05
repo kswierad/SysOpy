@@ -35,12 +35,15 @@ int last_written = 0;
 
 
 void *consumer(void *argument){
+    char *line;
     while(1) {
         sem_wait(&empty_buffer_sem);
         sem_wait(&buffer_sem);
 
-        char *line = malloc(sizeof(char)*MAX_LINE_SIZE);
-        strcpy(line,buffer[last_read]);
+        //line = malloc(sizeof(char)*MAX_LINE_SIZE);
+        //strcpy(line,buffer[last_read]);
+        line = buffer[last_read];
+        buffer[last_read] = NULL;
        
         
 
@@ -57,12 +60,11 @@ void *consumer(void *argument){
         }
         if(flag) printf("Index: %i, line: %s \n", last_read, line);
         if(line) free(line);
-        if(buffer[last_read]) free(buffer[last_read]);
         last_read = (last_read + 1) % N;
         in_buffer--;
         sem_post(&full_buffer_sem);
         sem_post(&buffer_sem);
-        //printf("cons2\n");
+
     }
 }
 
@@ -78,7 +80,7 @@ void *producer(void *argument){
             printf("Stopped reading file! \n");
             break;
         }
-        //printf("%s \n",line);
+
         buffer[last_written] = malloc(sizeof(char)*line_size);
         strcpy(buffer[last_written],line);
         if(line) {
@@ -93,6 +95,7 @@ void *producer(void *argument){
         }
         last_written = (last_written+1)%N;
         in_buffer++;
+        line_size = 0;
         sem_post(&empty_buffer_sem);
         sem_post(&buffer_sem);
     }
